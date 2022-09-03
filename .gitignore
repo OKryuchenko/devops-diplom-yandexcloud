@@ -38,8 +38,8 @@ Thumbs.db
 .vagrant
 
 # Local .terraform directories
-**/.terraform/*
-*.tf
+#**/.terraform/*
+#*.tf
 # .tfstate files
 *.tfstate
 *.tfstate.*
