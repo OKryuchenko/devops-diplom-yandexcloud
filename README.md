@@ -10,224 +10,238 @@
           * [Установка Prometheus, Alert Manager, Node Exporter и Grafana](#установка-prometheus)
   * [Что необходимо для сдачи задания?](#что-необходимо-для-сдачи-задания)
   * [Как правильно задавать вопросы дипломному руководителю?](#как-правильно-задавать-вопросы-дипломному-руководителю)
-
 ---
-## Цели:
 
-1. Зарегистрировать доменное имя (любое на ваш выбор в любой доменной зоне).
-2. Подготовить инфраструктуру с помощью Terraform на базе облачного провайдера YandexCloud.
-3. Настроить внешний Reverse Proxy на основе Nginx и LetsEncrypt.
-4. Настроить кластер MySQL.
-5. Установить WordPress.
-6. Развернуть Gitlab CE и Gitlab Runner.
-7. Настроить CI/CD для автоматического развёртывания приложения.
-8. Настроить мониторинг инфраструктуры с помощью стека: Prometheus, Alert Manager и Grafana.
-
+* [Подробное описание дипломного задания](README-diplom-task.md)
 ---
-## Этапы выполнения:
 
-### Регистрация доменного имени
+## Состав проекта
+>tree devops-diplom-yandexcloud -d -L 1
+```
+devops-diplom-yandexcloud
+├── ansible 
+├── gitlab
+├── packer
+├── screenshots
+├── terraform
+└── vagrant
+```
 
-Подойдет любое доменное имя на ваш выбор в любой доменной зоне.
+### Подготовительная часть
+Для работы с дипломным проектом подготовил виртуальную машину через vagrant.
+Установил YC, Terraform и Ansible  
 
-ПРИМЕЧАНИЕ: Далее в качестве примера используется домен `you.domain` замените его вашим доменом.
+```shell
+# -*- mode: ruby -*-
+ISO = "bento/ubuntu-20.04"
+NET = "192.168.1."
+DOMAIN = ".natology"
+HOST_PREFIX = "diplom-yc"
+INVENTORY_PATH = "../ansible/inventory"
+servers = [
+  {
+    :hostname => HOST_PREFIX + "01" + DOMAIN,
+    :ip => NET + "18",
+    :http_host => "8080",
+    :http_vm => "8080",
+    :ram => 2048,
+    :core => 2
+      }
+]
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder "../../..", "/vagrant", disabled: false
+  servers.each do |machine|
+    config.vm.define machine[:hostname] do |node|
+      node.vm.box = ISO
+      node.vm.hostname = machine[:hostname]
+      node.vm.network "private_network", ip: machine[:ip]
+      node.vm.network :forwarded_port, guest: machine[:http_vm], host: machine[:http_host]
+      node.vm.network :forwarded_port, guest: machine[:postgres_port], host: machine[:postgres_port]
+      node.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--memory", machine[:ram]]
+        vb.customize ["modifyvm", :id, "--cpus", machine[:core]]
+        vb.name = machine[:hostname]
+#   *** update ***
+        config.vm.provision :shell, :inline => "sudo apt-get update --fix-missing"
+# #   *** install YC  ***
+       config.vm.provision :shell, :inline => 'curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yandex-cloud -a'
+#   *** install terraform ***
+        config.vm.provision :shell, :inline => 'curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -'
+        config.vm.provision :shell, :inline => 'sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"'
+        config.vm.provision :shell, :inline => 'sudo apt-get update && sudo apt-get install terraform'
+#   *** install Ansible    ***
+        config.vm.provision :shell, :inline => 'curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py'
+        config.vm.provision :shell, :inline => 'python3 get-pip.py'
+        config.vm.provision :shell, :inline => 'python3 -m pip install ansible'
 
-Рекомендуемые регистраторы:
-  - [nic.ru](https://nic.ru)
-  - [reg.ru](https://reg.ru)
+      end
+     end
+  end
+end
+```
 
-Цель:
+### Готовим образ Centos 7 для использования в дипломном проекте
+Устанавливаем Packer на ubuntu
+```shell
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -   
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install packer
+```
+Инициализируем Yandex Cloud
+```shell
+yc init
+```
 
-1. Получить возможность выписывать [TLS сертификаты](https://letsencrypt.org) для веб-сервера.
+Создаём сеть
+```shell
+yc vpc network create --name net --labels my-label=netology --description "my network for packer"
+```
+Cоздаём подсети
+```shell
+yc vpc subnet create --name my-subnet-a --zone ru-central1-a --range 10.1.2.0/24 --network-name net --description "my first subnet via yc"
+```
+Проверяем валидность и начинаем сборку образа
+```shell
+packer validate centos-7-base.json
+packer build centos-7-base.json
+```
+Список образов
+```shell
+yc compute image list
+```
+id образа будет использоваться для terraform в файле variables.tf
+![img_3.png](screenshots/img_3.png)
 
-Ожидаемые результаты:
+Cобрали образ, удалили сеть и подсеть
+```shell
+yc vpc subnet delete --name my-subnet-a && yc vpc network delete --name net
+```
 
-1. У вас есть доступ к личному кабинету на сайте регистратора.
-2. Вы зарезистрировали домен и можете им управлять (редактировать dns записи в рамках этого домена).
 
-### Создание инфраструктуры
+##Процесс выполнения 
 
-Для начала необходимо подготовить инфраструктуру в YC при помощи [Terraform](https://www.terraform.io/).
+выполнить экспорт переменных окружения:
+```shell
+export TF_VAR_cloud_id="b1gi170919i7bg9r7" #  токен Yandex Cloud (данные изменены)
+export TF_VAR_folder_id="b1ggf7pops82f81r" # id облака 
+export ANSIBLE_HOST_KEY_CHECKING=False 
+```
 
-Особенности выполнения:
+переходим в папку terraform   
+создаем workspace
 
-- Бюджет купона ограничен, что следует иметь в виду при проектировании инфраструктуры и использовании ресурсов;
-- Следует использовать последнюю стабильную версию [Terraform](https://www.terraform.io/).
+```shell
+terraform workspace new stage
+terraform workspace new prod
+terraform workspace select stage
+````
+инициализируем бакет
+```shell
+terraform init -backend-config=backend.conf
+```
+содержимое backend.conf
 
-Предварительная подготовка:
+```shell
+    endpoint   = "storage.yandexcloud.net"
+    bucket     = "netology-backet2"
+    region     = "ru-central1-a"
+    key        = "./terraform.tfstate"
+    access_key = "YCAJETS72hXdfgfdUAq6mTF0V" # данные изменены
+    secret_key = "YCPnYgKZetertyWLMXitRXWIJzllsw2UgQu2" # данные изменены
 
-1. Создайте сервисный аккаунт, который будет в дальнейшем использоваться Terraform для работы с инфраструктурой с необходимыми и достаточными правами. Не стоит использовать права суперпользователя
-2. Подготовьте [backend](https://www.terraform.io/docs/language/settings/backends/index.html) для Terraform:
-   а. Рекомендуемый вариант: [Terraform Cloud](https://app.terraform.io/)  
-   б. Альтернативный вариант: S3 bucket в созданном YC аккаунте.
-3. Настройте [workspaces](https://www.terraform.io/docs/language/state/workspaces.html)
-   а. Рекомендуемый вариант: создайте два workspace: *stage* и *prod*. В случае выбора этого варианта все последующие шаги должны учитывать факт существования нескольких workspace.  
-   б. Альтернативный вариант: используйте один workspace, назвав его *stage*. Пожалуйста, не используйте workspace, создаваемый Terraform-ом по-умолчанию (*default*).
-4. Создайте VPC с подсетями в разных зонах доступности.
-5. Убедитесь, что теперь вы можете выполнить команды `terraform destroy` и `terraform apply` без дополнительных ручных действий.
-6. В случае использования [Terraform Cloud](https://app.terraform.io/) в качестве [backend](https://www.terraform.io/docs/language/settings/backends/index.html) убедитесь, что применение изменений успешно проходит, используя web-интерфейс Terraform cloud.
+    skip_region_validation      = true
+    skip_credentials_validation = true
 
-Цель:
+```
+![img_5.png](screenshots/img_5.png)
+### Подготовка роли Ansible
+Создаем новую роль   
+`ansible-galaxy role init install-gitlab`
+![img_20.png](screenshots/img_20.png)
+После редактирования роли отправляем ее в github, чтобы была возможность скачать ее при необходимости
 
-1. Повсеместно применять IaaC подход при организации (эксплуатации) инфраструктуры.
-2. Иметь возможность быстро создавать (а также удалять) виртуальные машины и сети. С целью экономии денег на вашем аккаунте в YandexCloud.
+При помощи `ansible-galaxy` скачать себе эту роль. 
+Предварительно ssh ключи добавить в github
+```shell
+ansible-galaxy install -r requirements.yml -p roles -f
+```
+![img_22.png](screenshots/img_22.png)
+Содержимое файла requirements.yml (В данном примере только одна роль, не стал для всех используемых ролей делать отдельные репозитории)
 
-Ожидаемые результаты:
-
-1. Terraform сконфигурирован и создание инфраструктуры посредством Terraform возможно без дополнительных ручных действий.
-2. Полученная конфигурация инфраструктуры является предварительной, поэтому в ходе дальнейшего выполнения задания возможны изменения.
-
+```shell
 ---
-### Установка Nginx и LetsEncrypt
+ - name: install-gitlab
+   src: git@github.com:OKryuchenko/install-gitlab.git
+   scm: git
+```
+## Создание инфраструктуры
+```
+terraform/
+├── ansible.tf          # запуск плейбуков Ansible
+├── backend.conf        # конфигурация бекенда YC
+├── dns.tf              # конфигурация DNS
+├── gitlab.tf           # запуск скриптов gitlab
+├── group_vars.tf       # Terraform собирает переменные, отправляет в Ansible ../ansible/group_vars/all.yml
+├── inventory.tf        # Terraform подготоавливает файл инвентори для Ansible ../ansible/inventory/stage.yml
+├── key.json            # Ключ сервисного аккаунта YC. Скрыт в .gitignore
+├── network.tf          # Настройки сетей
+├── output.tf           # Выходные данные
+├── providers.tf        # Настройки провайдеров
+├── variables.tf        # Переменные. Для выдачи тестовых сертификатов значение переменной acme_server - etsencrypttest, для рабочих - etsencrypt
+└── vm.tf               # Настройки виртуальных машин
+```
+###Запуск Terraform
+```shell
+terraform plan
+terraform apply --auto-approve
+```
+###Результат выполнения
+![img_21.png](screenshots/img_21.png)
+![img_6.png](screenshots/img_6.png)
+список ВМ
+![img_7.png](screenshots/img_7.png)
+cloud dns
+![img_8.png](screenshots/img_8.png)
 
-Необходимо разработать Ansible роль для установки Nginx и LetsEncrypt.
+WordPress   
+![img_9.png](screenshots/img_9.png)   
+При коммите в репозиторий с WordPress и создании тега (например, v1.0) происходит деплой на виртуальную машину
+![img_11.png](screenshots/img_11.png)   
 
-**Для получения LetsEncrypt сертификатов во время тестов своего кода пользуйтесь [тестовыми сертификатами](https://letsencrypt.org/docs/staging-environment/), так как количество запросов к боевым серверам LetsEncrypt [лимитировано](https://letsencrypt.org/docs/rate-limits/).**
+![img_10.png](screenshots/img_10.png)
+Gitlab
+![img_12.png](screenshots/img_12.png)
 
-Рекомендации:
-  - Имя сервера: `you.domain`
-  - Характеристики: 2vCPU, 2 RAM, External address (Public) и Internal address.
+![img_13.png](screenshots/img_13.png)
 
-Цель:
+![img_14.png](screenshots/img_14.png)
 
-1. Создать reverse proxy с поддержкой TLS для обеспечения безопасного доступа к веб-сервисам по HTTPS.
+Grafana
+![img_15.png](screenshots/img_15.png)
+Prometheus
+![img_16.png](screenshots/img_16.png)
 
-Ожидаемые результаты:
+![img_17.png](screenshots/img_17.png)
+Alertmanager
+![img_18.png](screenshots/img_18.png)
+###Удаляем инфраструктуру 
+Удаление отдельного ресурса
+```shell
+terraform destroy --target yandex_compute_instance.wordpress
+```
+Удаление инфраструктуры полностью
+```shell
+terraform destroy --auto-approve
+```
+![img_19.png](screenshots/img_19.png)
 
-1. В вашей доменной зоне настроены все A-записи на внешний адрес этого сервера:
-    - `https://www.you.domain` (WordPress)
-    - `https://gitlab.you.domain` (Gitlab)
-    - `https://grafana.you.domain` (Grafana)
-    - `https://prometheus.you.domain` (Prometheus)
-    - `https://alertmanager.you.domain` (Alert Manager)
-2. Настроены все upstream для выше указанных URL, куда они сейчас ведут на этом шаге не важно, позже вы их отредактируете и укажите верные значения.
-2. В браузере можно открыть любой из этих URL и увидеть ответ сервера (502 Bad Gateway). На текущем этапе выполнение задания это нормально!
-
-___
-### Установка кластера MySQL
-
-Необходимо разработать Ansible роль для установки кластера MySQL.
-
-Рекомендации:
-  - Имена серверов: `db01.you.domain` и `db02.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
-
-Цель:
-
-1. Получить отказоустойчивый кластер баз данных MySQL.
-
-Ожидаемые результаты:
-
-1. MySQL работает в режиме репликации Master/Slave.
-2. В кластере автоматически создаётся база данных c именем `wordpress`.
-3. В кластере автоматически создаётся пользователь `wordpress` с полными правами на базу `wordpress` и паролем `wordpress`.
-
-**Вы должны понимать, что в рамках обучения это допустимые значения, но в боевой среде использование подобных значений не приемлимо! Считается хорошей практикой использовать логины и пароли повышенного уровня сложности. В которых будут содержаться буквы верхнего и нижнего регистров, цифры, а также специальные символы!**
-
-___
-### Установка WordPress
-
-Необходимо разработать Ansible роль для установки WordPress.
-
-Рекомендации:
-  - Имя сервера: `app.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
-
-Цель:
-
-1. Установить [WordPress](https://wordpress.org/download/). Это система управления содержимым сайта ([CMS](https://ru.wikipedia.org/wiki/Система_управления_содержимым)) с открытым исходным кодом.
+удаляем виртуальную машину vagrant
+```shell
+vagrant destroy
+```
+![img_23.png](screenshots/img.png)
 
 
-По данным W3techs, WordPress используют 64,7% всех веб-сайтов, которые сделаны на CMS. Это 41,1% всех существующих в мире сайтов. Эту платформу для своих блогов используют The New York Times и Forbes. Такую популярность WordPress получил за удобство интерфейса и большие возможности.
 
-Ожидаемые результаты:
-
-1. Виртуальная машина на которой установлен WordPress и Nginx/Apache (на ваше усмотрение).
-2. В вашей доменной зоне настроена A-запись на внешний адрес reverse proxy:
-    - `https://www.you.domain` (WordPress)
-3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен WordPress.
-4. В браузере можно открыть URL `https://www.you.domain` и увидеть главную страницу WordPress.
----
-### Установка Gitlab CE и Gitlab Runner
-
-Необходимо настроить CI/CD систему для автоматического развертывания приложения при изменении кода.
-
-Рекомендации:
-  - Имена серверов: `gitlab.you.domain` и `runner.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
-
-Цель:
-1. Построить pipeline доставки кода в среду эксплуатации, то есть настроить автоматический деплой на сервер `app.you.domain` при коммите в репозиторий с WordPress.
-
-Подробнее об [Gitlab CI](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
-
-Ожидаемый результат:
-
-1. Интерфейс Gitlab доступен по https.
-2. В вашей доменной зоне настроена A-запись на внешний адрес reverse proxy:
-    - `https://gitlab.you.domain` (Gitlab)
-3. На сервере `you.domain` отредактирован upstream для выше указанного URL и он смотрит на виртуальную машину на которой установлен Gitlab.
-3. При любом коммите в репозиторий с WordPress и создании тега (например, v1.0.0) происходит деплой на виртуальную машину.
-
-___
-### Установка Prometheus, Alert Manager, Node Exporter и Grafana
-
-Необходимо разработать Ansible роль для установки Prometheus, Alert Manager и Grafana.
-
-Рекомендации:
-  - Имя сервера: `monitoring.you.domain`
-  - Характеристики: 4vCPU, 4 RAM, Internal address.
-
-Цель:
-
-1. Получение метрик со всей инфраструктуры.
-
-Ожидаемые результаты:
-
-1. Интерфейсы Prometheus, Alert Manager и Grafana доступены по https.
-2. В вашей доменной зоне настроены A-записи на внешний адрес reverse proxy:
-  - `https://grafana.you.domain` (Grafana)
-  - `https://prometheus.you.domain` (Prometheus)
-  - `https://alertmanager.you.domain` (Alert Manager)
-3. На сервере `you.domain` отредактированы upstreams для выше указанных URL и они смотрят на виртуальную машину на которой установлены Prometheus, Alert Manager и Grafana.
-4. На всех серверах установлен Node Exporter и его метрики доступны Prometheus.
-5. У Alert Manager есть необходимый [набор правил](https://awesome-prometheus-alerts.grep.to/rules.html) для создания алертов.
-2. В Grafana есть дашборд отображающий метрики из Node Exporter по всем серверам.
-3. В Grafana есть дашборд отображающий метрики из MySQL (*).
-4. В Grafana есть дашборд отображающий метрики из WordPress (*).
-
-*Примечание: дашборды со звёздочкой являются опциональными заданиями повышенной сложности их выполнение желательно, но не обязательно.*
-
----
-## Что необходимо для сдачи задания?
-
-1. Репозиторий со всеми Terraform манифестами и готовность продемонстрировать создание всех ресурсов с нуля.
-2. Репозиторий со всеми Ansible ролями и готовность продемонстрировать установку всех сервисов с нуля.
-3. Скриншоты веб-интерфейсов всех сервисов работающих по HTTPS на вашем доменном имени.
-  - `https://www.you.domain` (WordPress)
-  - `https://gitlab.you.domain` (Gitlab)
-  - `https://grafana.you.domain` (Grafana)
-  - `https://prometheus.you.domain` (Prometheus)
-  - `https://alertmanager.you.domain` (Alert Manager)
-4. Все репозитории рекомендуется хранить на одном из ресурсов ([github.com](https://github.com) или [gitlab.com](https://gitlab.com)).
-
----
-## Как правильно задавать вопросы дипломному руководителю?
-
-**Что поможет решить большинство частых проблем:**
-
-1. Попробовать найти ответ сначала самостоятельно в интернете или в
-  материалах курса и ДЗ и только после этого спрашивать у дипломного
-  руководителя. Навык поиска ответов пригодится вам в профессиональной
-  деятельности.
-2. Если вопросов больше одного, то присылайте их в виде нумерованного
-  списка. Так дипломному руководителю будет проще отвечать на каждый из
-  них.
-3. При необходимости прикрепите к вопросу скриншоты и стрелочкой
-  покажите, где не получается.
-
-**Что может стать источником проблем:**
-
-1. Вопросы вида «Ничего не работает. Не запускается. Всё сломалось». Дипломный руководитель не сможет ответить на такой вопрос без дополнительных уточнений. Цените своё время и время других.
-2. Откладывание выполнения курсового проекта на последний момент.
-3. Ожидание моментального ответа на свой вопрос. Дипломные руководители работающие разработчики, которые занимаются, кроме преподавания, своими проектами. Их время ограничено, поэтому постарайтесь задавать правильные вопросы, чтобы получать быстрые ответы :)
+ 
+ 

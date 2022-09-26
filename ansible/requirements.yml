@@ -1,0 +1,4 @@
+---
+ - name: install-gitlab
+   src: git@github.com:OKryuchenko/install-gitlab.git
+   scm: git

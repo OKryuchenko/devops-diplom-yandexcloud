@@ -1,0 +1,27 @@
+{
+  "builders": [
+    {
+      "disk_type": "network-nvme",
+      "folder_id": "b1ggfj7poanps828f81r",
+      "image_description": "for diplom",
+      "image_family": "centos",
+      "image_name": "centos-7-base-diplom",
+      "source_image_family": "centos-7",
+      "ssh_username": "centos",
+      "subnet_id": "e9bqu2j589oil6uen9as",
+      "token": "AQAAAAAOIkBTAATuwdgJVl1_WUTEiUGI2RIT8Mo",
+      "type": "yandex",
+      "use_ipv4_nat": true,
+      "zone": "ru-central1-a"
+    }
+  ],
+  "provisioners": [
+    {
+      "inline": [
+        "sudo yum -y update",
+        "sudo yum -y install bridge-utils bind-utils iptables curl net-tools tcpdump rsync telnet openssh-server"
+      ],
+      "type": "shell"
+    }
+  ]
+}

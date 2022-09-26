@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="9edaba0f-7c39-40a2-a148-98962a0eeab4" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/README_base.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/img.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/img_1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/terraform-provider-yandex_v0.72.0" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/backend.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/key.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/main.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/network.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/node01.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/output.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/provider.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/terraform/vars.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-01/vagrant/vagrantfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/.terraform/providers/terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex/0.72.0/linux_amd64/terraform-provider-yandex_v0.72.0" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/backend.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/key.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/main.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/network.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/node01.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/output.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/provider.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src-default/terraform/vars.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ansible/requirements.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/ansible/site.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/terraform/.terraform/environment" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/terraform/key.tf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/terraform/node02.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/backend.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/backend.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/main.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/main.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/network.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/network.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/node01.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/node01.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/output.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/output.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/provider.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/provider.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/terraform/vars.tf" beforeDir="false" afterPath="$PROJECT_DIR$/src/terraform/vars.tf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vagrant/vagrantfile" beforeDir="false" afterPath="$PROJECT_DIR$/src/vagrant/vagrantfile" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="2EgEVbFcb9WbQebEyZ3ymVdiYhw" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9edaba0f-7c39-40a2-a148-98962a0eeab4" name="Changes" comment="" />
+      <created>1663008852243</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1663008852243</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,0 +1,46 @@
+# -*- mode: ruby -*-
+ISO = "bento/ubuntu-20.04"
+NET = "192.168.1."
+DOMAIN = ".natology"
+HOST_PREFIX = "diplom-yc"
+INVENTORY_PATH = "../ansible/inventory"
+servers = [
+  {
+    :hostname => HOST_PREFIX + "01" + DOMAIN,
+    :ip => NET + "18",
+    :http_host => "8080",
+    :http_vm => "8080",
+    :ram => 2048,
+    :core => 2
+      }
+]
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder "../../..", "/vagrant", disabled: false
+  servers.each do |machine|
+    config.vm.define machine[:hostname] do |node|
+      node.vm.box = ISO
+      node.vm.hostname = machine[:hostname]
+      node.vm.network "private_network", ip: machine[:ip]
+      node.vm.network :forwarded_port, guest: machine[:http_vm], host: machine[:http_host]
+      node.vm.network :forwarded_port, guest: machine[:postgres_port], host: machine[:postgres_port]
+      node.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--memory", machine[:ram]]
+        vb.customize ["modifyvm", :id, "--cpus", machine[:core]]
+        vb.name = machine[:hostname]
+#   *** update ***
+        config.vm.provision :shell, :inline => "sudo apt-get update --fix-missing"
+# #   *** install YC  ***
+       config.vm.provision :shell, :inline => 'curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yandex-cloud -a'
+#   *** install terraform ***
+        config.vm.provision :shell, :inline => 'curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -'
+        config.vm.provision :shell, :inline => 'sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"'
+        config.vm.provision :shell, :inline => 'sudo apt-get update && sudo apt-get install terraform'
+#   *** install pip3    ***
+        config.vm.provision :shell, :inline => 'curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py'
+        config.vm.provision :shell, :inline => 'python3 get-pip.py'
+        config.vm.provision :shell, :inline => 'python3 -m pip install ansible'
+
+      end
+     end
+  end
+end

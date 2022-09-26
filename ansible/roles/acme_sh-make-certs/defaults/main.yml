@@ -1,0 +1,12 @@
+---
+acme_domain: ''
+#acme_domain: kryuchenko.ru
+
+acme_resources: []
+#acme_resources:
+#  - name: www
+#  - name: gitlab
+#  - name: grafana
+#  - name: prometheus
+#  - name: alertmanager
+#  - name: grafana
